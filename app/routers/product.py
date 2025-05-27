@@ -48,8 +48,15 @@ async def create_product(
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Error saving image: {str(e)}")
 
-    color_list = json.loads(colors) if isinstance(colors, str) else []
-    size_list = json.loads(sizes) if isinstance(sizes, str) else []
+    # Parse colors and sizes safely
+    try:
+        color_list = json.loads(colors) if isinstance(colors, str) else []
+    except json.JSONDecodeError:
+        color_list = [c.strip() for c in colors.split(",")] if isinstance(colors, str) else []
+    try:
+        size_list = json.loads(sizes) if isinstance(sizes, str) else []
+    except json.JSONDecodeError:
+        size_list = [s.strip() for s in sizes.split(",")] if isinstance(sizes, str) else []
 
     new_product = Product(
         name=name,
@@ -75,45 +82,119 @@ async def create_product(
 
     return {"message": "Product created successfully!", "product_id": new_product.id}
 
-
+# List Products
 @router.get("/list")
 async def list_products(db: Session = Depends(get_db)):
     products = db.query(Product).all()
     if not products:
         raise HTTPException(status_code=404, detail="No products found")
-    return products
+
+    result = []
+    for p in products:
+        # Safely load JSON fields only if they are strings
+        images = []
+        if isinstance(p.images, str):
+            try:
+                images = json.loads(p.images)
+            except json.JSONDecodeError:
+                images = []
+        elif isinstance(p.images, list):
+            images = p.images
+
+        colors = []
+        if isinstance(p.colors, str):
+            try:
+                colors = json.loads(p.colors)
+            except json.JSONDecodeError:
+                colors = []
+        elif isinstance(p.colors, list):
+            colors = p.colors
+
+        sizes = []
+        if isinstance(p.sizes, str):
+            try:
+                sizes = json.loads(p.sizes)
+            except json.JSONDecodeError:
+                sizes = []
+        elif isinstance(p.sizes, list):
+            sizes = p.sizes
+
+        images_by_color = {}
+        if isinstance(p.images_by_color, str):
+            try:
+                images_by_color = json.loads(p.images_by_color)
+            except json.JSONDecodeError:
+                images_by_color = {}
+        elif isinstance(p.images_by_color, dict):
+            images_by_color = p.images_by_color
+
+        result.append({
+            "id": p.id,
+            "name": p.name,
+            "description": p.description,
+            "price": p.price,
+            "discount_price": p.discount_price,
+            "images": images,
+            "colors": colors,
+            "sizes": sizes,
+            "in_stock": p.in_stock,
+            "rating": p.rating,
+            "reviews": p.reviews,
+            "featured": p.featured,
+            "best_seller": p.best_seller,
+            "new_arrival": p.new_arrival,
+            "category_id": p.category_id,
+            "subcategory_id": p.subcategory_id,
+            "created_at": p.created_at.strftime("%Y-%m-%d %H:%M:%S") if p.created_at else None,
+            "images_by_color": images_by_color,
+        })
+    return result
 
 
 # Get Product
-@router.get("/get/{product_id}")
+@router.get("/get/{product_id}", response_model=ProductOut)
 async def get_product(product_id: int, db: Session = Depends(get_db)):
     product = db.query(Product).filter(Product.id == product_id).first()
-
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
 
-    return {
-        "id": product.id,
-        "name": product.name,
-        "description": product.description,
-        "price": product.price,
-        "discount_price": product.discount_price,
-        "images": json.loads(product.images) if product.images else [],
-        "colors": product.colors if isinstance(product.colors, list) else json.loads(product.colors) if product.colors else [],
-        "sizes": product.sizes if isinstance(product.sizes, list) else json.loads(product.sizes) if product.sizes else [],
-        "in_stock": product.in_stock,
-        "rating": product.rating,
-        "reviews": product.reviews,
-        "featured": product.featured,
-        "best_seller": product.best_seller,
-        "new_arrival": product.new_arrival,
-        "category_id": product.category_id,
-        "subcategory_id": product.subcategory_id,
-        "created_at": product.created_at.strftime("%Y-%m-%d %H:%M:%S") if product.created_at else None
-    }
+    # Safely convert JSON string fields to list/dict
+    if isinstance(product.images, str):
+        try:
+            product.images = json.loads(product.images)
+        except json.JSONDecodeError:
+            product.images = []
+    elif not product.images:
+        product.images = []
+
+    if isinstance(product.colors, str):
+        try:
+            product.colors = json.loads(product.colors)
+        except json.JSONDecodeError:
+            product.colors = []
+    elif not product.colors:
+        product.colors = []
+
+    if isinstance(product.sizes, str):
+        try:
+            product.sizes = json.loads(product.sizes)
+        except json.JSONDecodeError:
+            product.sizes = []
+    elif not product.sizes:
+        product.sizes = []
+
+    if isinstance(product.images_by_color, str):
+        try:
+            product.images_by_color = json.loads(product.images_by_color)
+        except json.JSONDecodeError:
+            product.images_by_color = {}
+    elif not product.images_by_color:
+        product.images_by_color = {}
+
+    return product
 
 
-
+# Update Product
 @router.put("/update/{product_id}", response_model=ProductOut)
 async def update_product(
     product_id: int,
@@ -153,9 +234,17 @@ async def update_product(
     if subcategory_name:
         db_product.subcategory_name = subcategory_name
     if colors:
-        db_product.colors = json.dumps([color.strip() for color in colors.split(",")])
+        try:
+            color_list = json.loads(colors) if isinstance(colors, str) else []
+        except json.JSONDecodeError:
+            color_list = [c.strip() for c in colors.split(",")]
+        db_product.colors = json.dumps(color_list)
     if sizes:
-        db_product.sizes = json.dumps([size.strip() for size in sizes.split(",")])
+        try:
+            size_list = json.loads(sizes) if isinstance(sizes, str) else []
+        except json.JSONDecodeError:
+            size_list = [s.strip() for s in sizes.split(",")]
+        db_product.sizes = json.dumps(size_list)
     if in_stock is not None:
         db_product.in_stock = in_stock
     if rating is not None:
@@ -178,26 +267,54 @@ async def update_product(
             file_path = os.path.join(upload_folder, filename)
             with open(file_path, "wb") as f:
                 f.write(await image.read())
-            image_paths.append(f"/products/{filename}")
+            image_paths.append(f"/static/products/{filename}")
         db_product.images = json.dumps(image_paths)
 
     if images_by_color:
         try:
             parsed = json.loads(images_by_color)  # ensure valid JSON
             db_product.images_by_color = json.dumps(parsed)
-        except Exception as e:
+        except Exception:
             raise HTTPException(status_code=400, detail="Invalid images_by_color format")
 
     db.commit()
     db.refresh(db_product)
 
-    # Deserialize JSON fields for response
-    db_product.images = json.loads(db_product.images) if db_product.images else []
-    db_product.colors = json.loads(db_product.colors) if db_product.colors else []
-    db_product.sizes = json.loads(db_product.sizes) if db_product.sizes else []
-    db_product.images_by_color = json.loads(db_product.images_by_color) if db_product.images_by_color else {}
+    # Safely deserialize JSON fields for response
+    if isinstance(db_product.images, str):
+        try:
+            db_product.images = json.loads(db_product.images)
+        except json.JSONDecodeError:
+            db_product.images = []
+    elif not db_product.images:
+        db_product.images = []
+
+    if isinstance(db_product.colors, str):
+        try:
+            db_product.colors = json.loads(db_product.colors)
+        except json.JSONDecodeError:
+            db_product.colors = []
+    elif not db_product.colors:
+        db_product.colors = []
+
+    if isinstance(db_product.sizes, str):
+        try:
+            db_product.sizes = json.loads(db_product.sizes)
+        except json.JSONDecodeError:
+            db_product.sizes = []
+    elif not db_product.sizes:
+        db_product.sizes = []
+
+    if isinstance(db_product.images_by_color, str):
+        try:
+            db_product.images_by_color = json.loads(db_product.images_by_color)
+        except json.JSONDecodeError:
+            db_product.images_by_color = {}
+    elif not db_product.images_by_color:
+        db_product.images_by_color = {}
 
     return db_product
+
 
 # Delete Product
 @router.delete("/delete/{product_id}", response_model=ProductOut)
