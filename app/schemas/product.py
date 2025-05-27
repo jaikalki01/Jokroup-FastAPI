@@ -16,9 +16,9 @@ class ProductBase(BaseModel):
     in_stock: bool = True
     rating: Optional[float] = 0.0
     reviews: Optional[int] = 0
-    featured: bool = False
-    best_seller: bool = False
-    new_arrival: bool = False
+    featured: bool
+    best_seller: bool
+    new_arrival: bool
     images_by_color: Optional[Dict[str, List[str]]] = None  # Optional mapping colors to image URLs
 
 class ProductCreate(ProductBase):
