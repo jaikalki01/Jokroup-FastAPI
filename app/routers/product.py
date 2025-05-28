@@ -123,7 +123,7 @@ async def create_product(
     images: List[UploadFile] = File(...),
     db: Session = Depends(get_db)
 ):
-    upload_folder = "static/products"
+    upload_folder = "staticstatic/products"
     os.makedirs(upload_folder, exist_ok=True)
 
     image_paths = []
@@ -240,7 +240,7 @@ async def update_product(
         db_product.new_arrival = new_arrival
 
     if images is not None:
-        upload_folder = "static/products"
+        upload_folder = "staticstatic/products"
         os.makedirs(upload_folder, exist_ok=True)
 
         image_paths = []
