@@ -47,7 +47,7 @@ async def create_new_arrival_product(
     images: List[UploadFile] = File(...),
     db: Session = Depends(get_db)
 ):
-    upload_folder = "static/products"
+    upload_folder = "products"
     os.makedirs(upload_folder, exist_ok=True)
 
     image_paths = []
@@ -56,7 +56,7 @@ async def create_new_arrival_product(
         file_path = os.path.join(upload_folder, filename)
         with open(file_path, "wb") as f:
             f.write(await image.read())
-        image_paths.append(f"/static/products/{filename}")
+        image_paths.append(f"/products/{filename}")
 
     color_list = safe_parse_list_field(colors)
     size_list = safe_parse_list_field(sizes)
@@ -123,7 +123,7 @@ async def create_product(
     images: List[UploadFile] = File(...),
     db: Session = Depends(get_db)
 ):
-    upload_folder = "static/products"
+    upload_folder = "products"
     os.makedirs(upload_folder, exist_ok=True)
 
     image_paths = []
@@ -133,7 +133,7 @@ async def create_product(
         try:
             with open(file_path, "wb") as f:
                 f.write(await image.read())
-            image_paths.append(f"/static/products/{filename}")
+            image_paths.append(f"/products/{filename}")
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Error saving image: {str(e)}")
 
@@ -240,7 +240,7 @@ async def update_product(
         db_product.new_arrival = new_arrival
 
     if images is not None:
-        upload_folder = "static/products"
+        upload_folder = "products"
         os.makedirs(upload_folder, exist_ok=True)
 
         image_paths = []
@@ -249,7 +249,7 @@ async def update_product(
             file_path = os.path.join(upload_folder, filename)
             with open(file_path, "wb") as f:
                 f.write(await image.read())
-            image_paths.append(f"/static/products/{filename}")
+            image_paths.append(f"/products/{filename}")
         db_product.images = json.dumps(image_paths)
 
     db.commit()

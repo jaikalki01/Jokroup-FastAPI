@@ -42,7 +42,8 @@ app = FastAPI(
 )
 
 # Mount static files (for serving images, etc.)
-app.mount("/products", StaticFiles(directory="static/products"), name="products")
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
 
 
 # Middleware

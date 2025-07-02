@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Form
 from pydantic_core.core_schema import model_schema
 from sqlalchemy.orm import Session
 from app.database import get_db
@@ -49,25 +49,23 @@ class UserOut(BaseModel):
 class LoginResponse(BaseModel):
     user: UserOut
     token: str
-@router.post("/login", response_model=LoginResponse)
-def login(user: LoginRequest, db: Session = Depends(get_db)):
-    db_user = crud.get_user_by_email(db, email=user.email)
-    if not db_user or not verify_password(user.password, db_user.password):
+
+
+@router.post("/login")
+def login(
+    email: str = Form(...),  # OAuth2 expects `username`
+    password: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    db_user = crud.get_user_by_email(db, email=email)
+    if not db_user or not verify_password(password, db_user.password):
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
-    token = create_access_token(data={"sub": db_user.email})
+    token = create_access_token(data={"sub": db_user.email, "role": db_user.role})
 
     return {
-        "user": {
-            "id": db_user.id,
-            "first_name": db_user.first_name,
-            "last_name": db_user.last_name,
-            "email": db_user.email,
-            "role": db_user.role,
-            "avatar": db_user.avatar,
-            "created_at": db_user.created_at
-        },
-        "token": token
+        "access_token": token,
+        "token_type": "bearer"
     }
 
 
