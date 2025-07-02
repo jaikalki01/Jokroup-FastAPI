@@ -45,6 +45,7 @@ app = FastAPI(
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
+
 # Middleware
 SECRET_KEY = os.urandom(24).hex()
 app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
