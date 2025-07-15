@@ -1,14 +1,17 @@
 from datetime import timedelta
 
-from fastapi import APIRouter, Depends, HTTPException
+
+from fastapi import APIRouter, Depends, HTTPException,Request
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
+from starlette import status
 
-from app.authentication import get_current_user, get_password_hash, SECRET_KEY, ALGORITHM
+from app.authentication import get_current_user, get_password_hash, SECRET_KEY, ALGORITHM, create_access_token
 from app.database import get_db
 from app.mail import send_reset_email
 from app.models import User
-from app.routers.authentication import create_access_token
+from app.routers.authentication import get_current_user, oauth2_scheme
+
 from app.schemas import user as user_schema
 from app.schemas.user import ChangePasswordRequest, SuccessMessage, ResetPasswordRequest, ForgotPasswordRequest
 from app.crud import user as crud
@@ -35,19 +38,34 @@ def read_user(user_id: int, db: Session = Depends(get_db)):
     return db_user
 
 
-@router.post("/change-password", response_model=SuccessMessage)
+@router.post("/change-password")
 def change_password(
-    data: ChangePasswordRequest,
+    body: ChangePasswordRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    token: str = Depends(oauth2_scheme)
 ):
-    if not verify_password(data.old_password, current_user.password):
-        raise HTTPException(status_code=400, detail="Old password is incorrect")
+    # Decode token and get current user
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email: str = payload.get("sub")
+        if email is None:
+            raise HTTPException(status_code=401, detail="Invalid token")
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")
 
-    current_user.password = hash_password(data.new_password)
+    user = crud.get_user_by_email(db, email)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Verify current password
+    if not verify_password(body.current_password, user.password):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+
+    # Update password
+    user.password = hash_password(body.new_password)
     db.commit()
 
-    return {"message": f"Password changed successfully for {current_user.role}"}
+    return {"message": "Password changed successfully"}
 
 @router.post("/forgot-password")
 def forgot_password(request: ForgotPasswordRequest, db: Session = Depends(get_db)):

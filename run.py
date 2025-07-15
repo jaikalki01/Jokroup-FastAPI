@@ -1,8 +1,9 @@
 from datetime import datetime
 from typing import Optional, List
 
+
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, APIRouter
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -42,7 +43,7 @@ app = FastAPI(
 )
 
 # Mount static files (for serving images, etc.)
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 
 
@@ -65,7 +66,8 @@ app.include_router(coupon_router.router, prefix="/api/v1/coupon", tags=["Coupon"
 app.include_router(category_router.router, prefix="/api/v1/cat", tags=["Category & SubCategory"])
 app.include_router(product_router.router, prefix="/api/v1/product", tags=["Product"])
 app.include_router(admin_router.router, prefix="/api/v1/admin", tags=["Admin"])
-app.include_router(auth_router.router, prefix="/api/auth", tags=["Authentication"])
+app.include_router(auth_router.router)
+
 app.include_router(order.router, prefix="/api/orders", tags=["Orders"])
 
 
