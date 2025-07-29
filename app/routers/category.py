@@ -1,47 +1,37 @@
-import os
-import shutil
-from fileinput import filename
-from typing import List
-from fastapi import Request
-
-
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, Form, File
-
-
 from sqlalchemy.orm import Session
-from sqlalchemy.testing import db
+import os, shutil
+from typing import List
 
 from app.database import get_db
-from app import crud, models, schemas
+from app import models, schemas
 from app.models import Category
 from app.schemas import category as category_schema
+from app.authentication import get_current_admin_user # ✅ Your auth logic
 
 router = APIRouter()
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-UPLOAD_DIR = os.path.join(BASE_DIR, "..", "static", "products")  # changed here
+UPLOAD_DIR = os.path.join(BASE_DIR, "..", "static", "products")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 def fix_image_url(image_path: str) -> str:
-    """
-    Convert stored image path to proper URL path.
-    image_path expected like 'products/filename.jpg' or 'filename.jpg'
-    """
     if not image_path:
         return ""
     image_path = image_path.lstrip("/")
-    # Normalize URL to always start with /static/
     if image_path.startswith("products/"):
         return f"/static/{image_path}"
     else:
         return f"/static/products/{image_path}"
 
+# ✅ Admin Protected
 @router.post("/create", response_model=schemas.CategoryOut)
 def create_category(
     name: str = Form(...),
     slug: str = Form(...),
     image: UploadFile = File(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    admin=Depends(get_current_admin_user)  # ✅
 ):
     file_ext = os.path.splitext(image.filename)[-1]
     file_name = f"{slug}{file_ext}"
@@ -49,9 +39,7 @@ def create_category(
     with open(save_path, "wb") as f:
         shutil.copyfileobj(image.file, f)
 
-    # Save path relative to 'static' folder (because static is mounted at /static)
-    image_path = f"/static/products/{filename}"
-
+    image_path = f"products/{file_name}"
     new_category = models.Category(name=name, slug=slug, image=image_path)
     db.add(new_category)
     db.commit()
@@ -65,6 +53,7 @@ def create_category(
         "subcategories": []
     }
 
+# ✅ Public
 @router.get("/list", response_model=List[schemas.CategoryOut])
 def get_categories(db: Session = Depends(get_db)):
     categories = db.query(models.Category).all()
@@ -86,13 +75,15 @@ def get_categories(db: Session = Depends(get_db)):
         })
     return response
 
+# ✅ Admin Protected
 @router.put("/update/{category_id}", response_model=schemas.CategoryOut)
 def update_category(
     category_id: int,
     name: str = Form(...),
     slug: str = Form(...),
     image: UploadFile = File(None),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    admin=Depends(get_current_admin_user)  # ✅
 ):
     category = db.query(models.Category).filter(models.Category.id == category_id).first()
     if not category:
@@ -102,20 +93,18 @@ def update_category(
     category.slug = slug
 
     if image:
-        # Remove old image file
         if category.image:
             old_image_path = os.path.join(BASE_DIR, "..", "static", category.image.lstrip("/static/"))
             if os.path.exists(old_image_path):
                 os.remove(old_image_path)
 
-        # Save new image
         file_ext = os.path.splitext(image.filename)[-1]
         file_name = f"{slug}{file_ext}"
         save_path = os.path.join(UPLOAD_DIR, file_name)
         with open(save_path, "wb") as f:
             shutil.copyfileobj(image.file, f)
 
-        category.image = f"...........  /{file_name}"
+        category.image = f"products/{file_name}"
 
     db.commit()
     db.refresh(category)
@@ -135,8 +124,13 @@ def update_category(
         ]
     }
 
+# ✅ Admin Protected
 @router.delete("/delete/{category_id}")
-def delete_category(category_id: int, db: Session = Depends(get_db)):
+def delete_category(
+    category_id: int,
+    db: Session = Depends(get_db),
+    admin=Depends(get_current_admin_user)  # ✅
+):
     category = db.query(models.Category).filter(models.Category.id == category_id).first()
     if not category:
         raise HTTPException(status_code=404, detail="Category not found")
@@ -150,12 +144,14 @@ def delete_category(category_id: int, db: Session = Depends(get_db)):
     db.commit()
     return {"detail": "Category deleted"}
 
-
 # --- SUBCATEGORY ROUTES ---
+
+# ✅ Admin Protected
 @router.post("/subcategory/create", response_model=schemas.SubCategoryOut)
 def create_subcategory(
     subcategory: schemas.SubCategoryCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    admin=Depends(get_current_admin_user)  # ✅
 ):
     category = db.query(models.Category).filter(models.Category.id == subcategory.category_id).first()
     if not category:
@@ -167,17 +163,18 @@ def create_subcategory(
     db.refresh(new_sub)
     return new_sub
 
-# Get All SubCategories
+# ✅ Public
 @router.get("/subcategory/list", response_model=List[schemas.SubCategoryOut])
 def get_all_subcategories(db: Session = Depends(get_db)):
     return db.query(models.SubCategory).all()
 
-# Update SubCategory
+# ✅ Admin Protected
 @router.put("/sub/update/{sub_id}", response_model=schemas.SubCategoryOut)
 def update_subcategory(
     sub_id: int,
     sub_data: schemas.SubCategoryUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    admin=Depends(get_current_admin_user)  # ✅
 ):
     sub = db.query(models.SubCategory).filter(models.SubCategory.id == sub_id).first()
     if not sub:
@@ -189,9 +186,13 @@ def update_subcategory(
     db.refresh(sub)
     return sub
 
-# Delete SubCategory
+# ✅ Admin Protected
 @router.delete("/sub/delete/{sub_id}")
-def delete_subcategory(sub_id: int, db: Session = Depends(get_db)):
+def delete_subcategory(
+    sub_id: int,
+    db: Session = Depends(get_db),
+    admin=Depends(get_current_admin_user)  # ✅
+):
     sub = db.query(models.SubCategory).filter(models.SubCategory.id == sub_id).first()
     if not sub:
         raise HTTPException(status_code=404, detail="SubCategory not found")

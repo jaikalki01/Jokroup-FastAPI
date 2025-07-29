@@ -7,11 +7,12 @@ class Order(Base):
     __tablename__ = "orders"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)  # ✅ Fix added here
     status = Column(String(50), default="processing")
     created_at = Column(DateTime, default=datetime.utcnow)
 
     tracking_updates = relationship("OrderTracking", back_populates="order")
+    user = relationship("User", back_populates="orders")  # ✅ Add this line
 
 
 class OrderTracking(Base):

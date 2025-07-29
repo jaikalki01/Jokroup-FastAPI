@@ -20,8 +20,12 @@ class UserOut(BaseModel):
     last_name: str
     email: str
     role: str
-    avatar: str
-    created_at: datetime
+    avatar: Optional[str] = None           # ✅ Now allows null
+    created_at: Optional[datetime] = None  # ✅ Now allows null
+
+    class Config:
+        from_attributes = True
+
 
     class Config:
         from_attributes = True
@@ -49,18 +53,18 @@ class User(BaseModel):
     addresses: Optional[List[Address]] = []
     createdAt: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
 
-class UserCreate(BaseModel):
+class UserCreate(BaseModel):  # use this everywhere`
     first_name: str
     last_name: str
     email: EmailStr
     password: str
-    role: str
-    avatar: Optional[str] = "/placeholder.svg"
-    addresses: Optional[List[Address]] = []
 
 class ChangePasswordRequest(BaseModel):
-    old_password: constr(min_length=6)
-    new_password: constr(min_length=6)
+    old_password: str
+    new_password: str
+
+class SuccessMessage(BaseModel):
+    message: str
 
 
 class ForgotPasswordRequest(BaseModel):
@@ -70,3 +74,9 @@ class ForgotPasswordRequest(BaseModel):
 class ResetPasswordRequest(BaseModel):
     token: str
     new_password: constr(min_length=6)
+
+# ✅ ADD THIS OUTSIDE, at the bottom:
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
