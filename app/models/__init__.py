@@ -4,7 +4,7 @@ from .category import Category, SubCategory
 from .address import Address
 from .coupon import Coupon
 #from .category  import
-
+from .cart import CartItem
 
 from .user import User, UserSettings
 

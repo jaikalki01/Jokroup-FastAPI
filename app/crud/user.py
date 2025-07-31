@@ -33,8 +33,4 @@ def create_user1(db: Session, user: user_schema.UserCreate):
     db.refresh(db_user)
     return db_user
 
-# Note  -- 1 crud used in 2 routes as for multitime use
 
-# signup banane me itna time q laga
-
-# do you means in header or body?

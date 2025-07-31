@@ -1,5 +1,9 @@
 from datetime import datetime, timedelta
 
+from sqlalchemy.testing import db
+
+from app.authentication import get_current_admin_user, get_current_user
+
 from fastapi import APIRouter, UploadFile, File, Form, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List, Union
@@ -8,6 +12,7 @@ import os
 import time
 
 from app.database import get_db
+from app.models import User
 from app.models.product import Product
 from app.schemas.product import ProductOut
 
@@ -45,9 +50,11 @@ async def create_new_arrival_product(
     rating: float = Form(0.0),
     reviews: int = Form(0),
     images: List[UploadFile] = File(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_admin_user)
 ):
-    upload_folder = "products"
+    upload_folder = "static/products"
+
     os.makedirs(upload_folder, exist_ok=True)
 
     image_paths = []
@@ -56,7 +63,7 @@ async def create_new_arrival_product(
         file_path = os.path.join(upload_folder, filename)
         with open(file_path, "wb") as f:
             f.write(await image.read())
-        image_paths.append(f"/products/{filename}")
+        image_paths.append(f"products/{filename}")  # ✅ Only relative to static/
 
     color_list = safe_parse_list_field(colors)
     size_list = safe_parse_list_field(sizes)
@@ -121,9 +128,11 @@ async def create_product(
     best_seller: bool = Form(False),
     new_arrival: bool = Form(False),
     images: List[UploadFile] = File(...),
+    current_user: User = Depends(get_current_admin_user),  # ✅ Use admin checker
     db: Session = Depends(get_db)
 ):
-    upload_folder = "products"
+    upload_folder = "static/products"
+
     os.makedirs(upload_folder, exist_ok=True)
 
     image_paths = []
@@ -133,7 +142,7 @@ async def create_product(
         try:
             with open(file_path, "wb") as f:
                 f.write(await image.read())
-            image_paths.append(f"/products/{filename}")
+            print("Saved to:", file_path)
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Error saving image: {str(e)}")
 
@@ -204,7 +213,8 @@ async def update_product(
     best_seller: Union[bool, None] = Form(None),
     new_arrival: Union[bool, None] = Form(None),
     images: Union[List[UploadFile], None] = File(None),
-    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_admin_user),  # ✅ MUST be here
+    db: Session = Depends(get_db),
 ):
     db_product = db.query(Product).filter(Product.id == product_id).first()
     if not db_product:
@@ -240,7 +250,7 @@ async def update_product(
         db_product.new_arrival = new_arrival
 
     if images is not None:
-        upload_folder = "products"
+        upload_folder = "static/products"
         os.makedirs(upload_folder, exist_ok=True)
 
         image_paths = []
@@ -249,7 +259,9 @@ async def update_product(
             file_path = os.path.join(upload_folder, filename)
             with open(file_path, "wb") as f:
                 f.write(await image.read())
-            image_paths.append(f"/products/{filename}")
+            image_paths.append(f"products/{filename}")  # ✅ Only relative to static/
+        # ✅ Only relative to static/
+
         db_product.images = json.dumps(image_paths)
 
     db.commit()
@@ -263,7 +275,7 @@ async def update_product(
 
 # ---------------------------- DELETE PRODUCT ----------------------------
 @router.delete("/delete/{product_id}", response_model=ProductOut)
-async def delete_product(product_id: int, db: Session = Depends(get_db)):
+def delete_product(product_id: int, user: User = Depends(get_current_admin_user), db: Session = Depends(get_db)):
     db_product = db.query(Product).filter(Product.id == product_id).first()
     if not db_product:
         raise HTTPException(status_code=404, detail="Product not found")
@@ -276,3 +288,4 @@ async def delete_product(product_id: int, db: Session = Depends(get_db)):
     db_product.images = safe_parse_list_field(db_product.images)
 
     return db_product
+
