@@ -58,7 +58,16 @@ app = FastAPI(
 )
 
 os.makedirs("../static/products", exist_ok=True)
-app.mount("/static", StaticFiles(directory="static"), name="static")
+import os
+
+app.mount(
+    "/static",
+    StaticFiles(directory=os.path.join(os.path.dirname(__file__), "static")),
+    name="static"
+)
+
+
+
 
 # Middleware
 SECRET_KEY = os.urandom(24).hex()
@@ -85,9 +94,7 @@ app.include_router(wishlist.router)
 # Example Schemas and Mock Data...
 # (Place your schemas and mock data here as before)
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run("app.main:app", host="127.0.0.1", port=8000, reload=True, log_level="debug")
+
 
 
 
