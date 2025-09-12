@@ -1,4 +1,6 @@
-from sqlalchemy import Column, Integer, String, Float, Boolean, Text, DateTime, JSON
+# models/product.py
+from sqlalchemy import Column, Integer, String, Float, Boolean, Text, JSON, ForeignKey, DateTime
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.database import Base
 
@@ -10,11 +12,11 @@ class Product(Base):
     description = Column(Text)
     price = Column(Float, nullable=False)
     discount_price = Column(Float, default=0.0)
-    images = Column(JSON)  # Store list of image URLs as JSON
-    category_id = Column(Integer, nullable=False)  # Usually an integer FK id
-    subcategory_id = Column(Integer, nullable=False)
-    colors = Column(JSON)  # List of strings
-    sizes = Column(JSON)   # List of strings
+    images = Column(JSON)
+    category_id = Column(Integer, ForeignKey("categories.id"), nullable=False)
+    subcategory_id = Column(Integer, ForeignKey("subcategories.id"), nullable=False)
+    colors = Column(JSON)
+    sizes = Column(JSON)
     in_stock = Column(Boolean, default=True)
     rating = Column(Float, default=0.0)
     reviews = Column(Integer, default=0)
@@ -22,4 +24,10 @@ class Product(Base):
     best_seller = Column(Boolean, default=False)
     new_arrival = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    images_by_color = Column(JSON, nullable=True)  # JSON object mapping colors to image lists
+
+    highlights = Column(Text, nullable=True)
+    specifications = Column(Text, nullable=True)
+    details = Column(Text, nullable=True)
+
+    category = relationship("Category", back_populates="products")
+    subcategory = relationship("SubCategory", back_populates="products")

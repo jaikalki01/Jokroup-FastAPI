@@ -20,7 +20,10 @@ def create_product(db: Session, product: ProductCreate):
         reviews=product.reviews,
         featured=product.featured,
         best_seller=product.best_seller,
-        new_arrival=product.new_arrival
+        new_arrival=product.new_arrival,
+        highlights = product.highlights,
+        specifications = product.specifications,
+        details = product.details
     )
     db.add(db_product)
     db.commit()

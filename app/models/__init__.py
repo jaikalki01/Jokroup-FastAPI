@@ -8,3 +8,10 @@ from .cart import CartItem
 
 from .user import User, UserSettings
 
+
+class Order:
+    pass
+
+
+class Customer:
+    pass

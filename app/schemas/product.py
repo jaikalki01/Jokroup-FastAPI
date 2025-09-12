@@ -21,6 +21,10 @@ class ProductBase(BaseModel):
     new_arrival: bool
     images_by_color: Optional[Dict[str, List[str]]] = None  # Optional mapping colors to image URLs
 
+    highlights: Optional[List[str]]
+    specifications: Optional[Dict[str, str]]
+    details: Optional[str] = None
+
 class ProductCreate(ProductBase):
     pass
 
