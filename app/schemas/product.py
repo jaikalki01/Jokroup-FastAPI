@@ -1,32 +1,49 @@
-from datetime import datetime
 from pydantic import BaseModel
-from typing import List, Optional, Dict
+from typing import List, Optional
+from datetime import datetime
 
-class ProductBase(BaseModel):
+# ---------------- IMAGE ----------------
+class ProductImageOut(BaseModel):
+    id: int
+    image_url: str
+
+    class Config:
+        orm_mode = True  # tells Pydantic to work with SQLAlchemy objects
+
+
+# ---------------- COLOR ----------------
+class ProductColorOut(BaseModel):
+    id: int
+    color_name: str
+    images: List[ProductImageOut] = []  # nested images
+
+    class Config:
+        orm_mode = True
+
+
+# ---------------- PRODUCT ----------------
+class ProductOut(BaseModel):
+    id: int
     name: str
     description: Optional[str] = None
     price: float
-    discount_price: Optional[float] = 0.0
-    images: List[str]  # List of image URLs
-    category_id: Optional[int] = None
-    subcategory_id: Optional[int] = None
-
-    sizes: List[str]   # List of size strings
-    colors: List[str]  # List of color strings
-    in_stock: bool = True
+    discount_price: Optional[float] = None
+    category_id: int
+    subcategory_id: int
+    sizes: Optional[List[str]] = None
+    in_stock: Optional[bool] = True
     rating: Optional[float] = 0.0
     reviews: Optional[int] = 0
-    featured: bool
-    best_seller: bool
-    new_arrival: bool
-    images_by_color: Optional[Dict[str, List[str]]] = None  # Optional mapping colors to image URLs
+    featured: Optional[bool] = False
+    best_seller: Optional[bool] = False
+    new_arrival: Optional[bool] = False
+    highlights: Optional[str] = None
+    specifications: Optional[str] = None
+    details: Optional[str] = None
+    created_at: Optional[datetime]
 
-class ProductCreate(ProductBase):
-    pass
-
-class ProductOut(ProductBase):
-    id: int
-    created_at: datetime
+    # ✅ Nested colors (and inside that, nested images)
+    product_colors: List[ProductColorOut] = []
 
     class Config:
-        from_attributes = True
+        orm_mode = True

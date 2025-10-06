@@ -16,7 +16,7 @@ from app.routers import (
     coupon as coupon_router,
     category as category_router,
     product as product_router,
-    order, cart, wishlist,
+    order, cart, wishlist, analytics,
 )
 
 from app.routers.admin import router as admin_router
@@ -93,7 +93,7 @@ app.include_router(cart.router)
 app.include_router(wishlist.router)
 # Example Schemas and Mock Data...
 # (Place your schemas and mock data here as before)
-
+app.include_router(analytics.router)
 
 
 
