@@ -1,10 +1,11 @@
 import json
 from sqlalchemy.orm import Session
 from app.models.product import Product
-from app.schemas.product import ProductCreate
+from app.schemas.product import ProductOut
+
 
 # Create product
-def create_product(db: Session, product: ProductCreate):
+def create_product(db: Session, product: ProductOut):
     db_product = Product(
         name=product.name,
         description=product.description,
