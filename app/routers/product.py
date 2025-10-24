@@ -1,8 +1,10 @@
 from fastapi import APIRouter, UploadFile, File, Form, Depends, HTTPException, Request
+from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import Session
 from typing import List, Optional
 import os, json
 
+from app import schemas, models
 from app.database import get_db
 from app.models import User
 from app.models.product import Product, ProductColor, ProductImage
@@ -43,16 +45,35 @@ def make_file_url(request: Request, filename: str) -> str:
     return f"{base_url}/static/uploads/products/{filename}"
 
 
-# ---------------------------- PUBLIC ROUTES ----------------------------
-@router.get("/list", response_model=List[ProductOut])
-def list_products(request: Request, db: Session = Depends(get_db)):
-    products = db.query(Product).all()
-    for p in products:
-        for c in p.product_colors:
-            for img in c.images:
-                img.image_url = make_file_url(request, img.image_url)
-    return products
+@router.get("/list", response_model=List[schemas.CategoryOut], response_model_exclude_none=True)
+def list_categories(request: Request, db: Session = Depends(get_db)):
+    # load categories with their subcategories (relationship)
+    categories = db.query(models.Category).all()
 
+    # Convert ORM objects -> plain Python types
+    data = jsonable_encoder(categories)
+
+    # Ensure every subcategory has the fields expected by schema,
+    # and avoid having unexpected `None` values for integer fields if you want.
+    for cat in data:
+        subcats = cat.get("subcategories") or []
+        cleaned_subcats = []
+        for sc in subcats:
+            # map DB fields safely. If your DB uses `category_id` -> keep it.
+            # Provide subcategory_id alias if any client expects it.
+            cleaned = {
+                "id": sc.get("id"),
+                "name": sc.get("name"),
+                "slug": sc.get("slug"),
+                # keep category_id as-is (may be None if DB allows NULL)
+                "category_id": sc.get("category_id"),
+                # also include subcategory_id for compatibility (use id if necessary)
+                "subcategory_id": sc.get("subcategory_id") if sc.get("subcategory_id") is not None else sc.get("id"),
+            }
+            cleaned_subcats.append(cleaned)
+        cat["subcategories"] = cleaned_subcats or None
+
+    return data
 
 @router.get("/product/{product_id}", response_model=ProductOut)
 def get_product(product_id: int, request: Request, db: Session = Depends(get_db)):

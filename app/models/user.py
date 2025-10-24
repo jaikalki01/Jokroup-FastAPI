@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from sqlalchemy import Column, String, DateTime, Integer, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 from app.database import Base
@@ -10,9 +12,16 @@ class User(Base):
     last_name = Column(String(250))
     email = Column(String(250), unique=True, index=True)
     password = Column(String(250))
-    role = Column(String(250))
+    role = Column(String(250), default="user")
     avatar = Column(String(250), nullable=True)
-    created_at = Column(DateTime)
+    phone = Column(String(50), nullable=True)  # new field
+    address_line1 = Column(String(250), nullable=True)  # new field
+    address_line2 = Column(String(250), nullable=True)  # new field
+    city = Column(String(100), nullable=True)  # new field
+    region = Column(String(100), nullable=True)  # new field
+    postal_code = Column(String(20), nullable=True)  # new field
+    country = Column(String(100), nullable=True)  # new field
+    created_at = Column(DateTime, default=datetime.utcnow)
 
     # ✅ All relationships must be indented properly within the class
     addresses = relationship("Address", back_populates="user")

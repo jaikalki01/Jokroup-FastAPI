@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 class WishlistBase(BaseModel):
     product_id: int
@@ -10,5 +10,5 @@ class WishlistItemOut(BaseModel):
     id: int
     product_id: int
 
-    class Config:
-        orm_mode = True
+    # ✅ New Pydantic v2 syntax (replaces class Config)
+    model_config = ConfigDict(from_attributes=True)

@@ -58,22 +58,32 @@ def create_category(
 def get_categories(db: Session = Depends(get_db)):
     categories = db.query(models.Category).all()
     response = []
+
     for cat in categories:
+        # Get subcategories cleanly
+        subcats = [
+            {
+                "id": sub.id,
+                "name": sub.name or "Unnamed",
+                "slug": sub.slug,
+                "category_id": sub.category_id,
+                "subcategory_id": sub.id
+            }
+            for sub in cat.subcategories
+        ]
+
         response.append({
             "id": cat.id,
             "name": cat.name,
             "slug": cat.slug,
             "image": fix_image_url(cat.image),
-            "subcategories": [
-                {
-                    "id": sub.id,
-                    "name": sub.name,
-                    "slug": sub.slug,
-                    "category_id": sub.category_id
-                } for sub in cat.subcategories
-            ]
+            "subcategories": subcats or None
         })
+
     return response
+
+
+
 
 # ✅ Admin Protected
 @router.put("/update/{category_id}", response_model=schemas.CategoryOut)
@@ -147,11 +157,11 @@ def delete_category(
 # --- SUBCATEGORY ROUTES ---
 
 # ✅ Admin Protected
-@router.post("/subcategory/create", response_model=schemas.SubCategoryOut)
+@router.post("/subcategory/create", response_model=schemas.SubcategoryOut)
 def create_subcategory(
     subcategory: schemas.SubCategoryCreate,
     db: Session = Depends(get_db),
-    admin=Depends(get_current_admin_user)  # ✅
+    admin=Depends(get_current_admin_user)
 ):
     category = db.query(models.Category).filter(models.Category.id == subcategory.category_id).first()
     if not category:
@@ -161,20 +171,38 @@ def create_subcategory(
     db.add(new_sub)
     db.commit()
     db.refresh(new_sub)
-    return new_sub
+
+    return {
+        "id": new_sub.id,
+        "name": new_sub.name,
+        "slug": new_sub.slug,
+        "category_id": new_sub.category_id,
+        "subcategory_id": new_sub.id
+    }
+
 
 # ✅ Public
-@router.get("/subcategory/list", response_model=List[schemas.SubCategoryOut])
+@router.get("/subcategory/list", response_model=List[schemas.SubcategoryOut])
 def get_all_subcategories(db: Session = Depends(get_db)):
-    return db.query(models.SubCategory).all()
+    subs = db.query(models.SubCategory).all()
+    return [
+        {
+            "id": s.id,
+            "name": s.name,
+            "slug": s.slug,
+            "category_id": s.category_id,
+            "subcategory_id": s.id
+        } for s in subs
+    ]
+
 
 # ✅ Admin Protected
-@router.put("/sub/update/{sub_id}", response_model=schemas.SubCategoryOut)
+@router.put("/sub/update/{sub_id}", response_model=schemas.SubcategoryOut)
 def update_subcategory(
     sub_id: int,
     sub_data: schemas.SubCategoryUpdate,
     db: Session = Depends(get_db),
-    admin=Depends(get_current_admin_user)  # ✅
+    admin=Depends(get_current_admin_user)
 ):
     sub = db.query(models.SubCategory).filter(models.SubCategory.id == sub_id).first()
     if not sub:
@@ -184,7 +212,14 @@ def update_subcategory(
     sub.slug = sub_data.slug
     db.commit()
     db.refresh(sub)
-    return sub
+    return {
+        "id": sub.id,
+        "name": sub.name,
+        "slug": sub.slug,
+        "category_id": sub.category_id,
+        "subcategory_id": sub.id
+    }
+
 
 # ✅ Admin Protected
 @router.delete("/sub/delete/{sub_id}")

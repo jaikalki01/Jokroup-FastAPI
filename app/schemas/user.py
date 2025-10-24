@@ -8,8 +8,15 @@ users = []
 class UserCreate1(BaseModel):
     first_name: str
     last_name: str
-    email: str
+    email: EmailStr
     password: str
+    phone: Optional[str] = None
+    address_line1: Optional[str] = None
+    address_line2: Optional[str] = None
+    city: Optional[str] = None
+    region: Optional[str] = None
+    postal_code: Optional[str] = None
+    country: Optional[str] = None
 
 class SuccessMessage(BaseModel):
     message: str

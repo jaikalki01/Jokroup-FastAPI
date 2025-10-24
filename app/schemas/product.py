@@ -2,34 +2,29 @@ from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime
 
-# ---------------- IMAGE ----------------
 class ProductImageOut(BaseModel):
     id: int
     image_url: str
 
     class Config:
-        orm_mode = True  # tells Pydantic to work with SQLAlchemy objects
+        orm_mode = True
 
-
-# ---------------- COLOR ----------------
 class ProductColorOut(BaseModel):
     id: int
     color_name: str
-    images: List[ProductImageOut] = []  # nested images
+    images: Optional[List[ProductImageOut]] = None
 
     class Config:
         orm_mode = True
 
-
-# ---------------- PRODUCT ----------------
 class ProductOut(BaseModel):
     id: int
     name: str
     description: Optional[str] = None
     price: float
     discount_price: Optional[float] = None
-    category_id: int
-    subcategory_id: int
+    category_id: Optional[int] = None         # <- make optional
+    subcategory_id: Optional[int] = None      # <- make optional
     sizes: Optional[List[str]] = None
     in_stock: Optional[bool] = True
     rating: Optional[float] = 0.0
@@ -40,10 +35,9 @@ class ProductOut(BaseModel):
     highlights: Optional[str] = None
     specifications: Optional[str] = None
     details: Optional[str] = None
-    created_at: Optional[datetime]
+    created_at: Optional[datetime] = None
 
-    # ✅ Nested colors (and inside that, nested images)
-    product_colors: List[ProductColorOut] = []
+    product_colors: Optional[List[ProductColorOut]] = None
 
     class Config:
         orm_mode = True

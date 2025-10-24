@@ -16,7 +16,7 @@ from app.routers import (
     coupon as coupon_router,
     category as category_router,
     product as product_router,
-    order, cart, wishlist, analytics,
+    order, cart, wishlist,
 )
 
 from app.routers.admin import router as admin_router
@@ -52,12 +52,12 @@ async def lifespan(app: FastAPI):
 # Create FastAPI app
 app = FastAPI(
     title="Jokroup API",
-    description="API for jokroup where users can buy and sell templates.",
+    description="API for Templamart where users can buy and sell templates.",
     version="1.0.0",
     lifespan=lifespan,
 )
 
-os.makedirs("../static/products", exist_ok=True)
+os.makedirs("static/products", exist_ok=True)
 import os
 
 app.mount(
@@ -93,7 +93,7 @@ app.include_router(cart.router)
 app.include_router(wishlist.router)
 # Example Schemas and Mock Data...
 # (Place your schemas and mock data here as before)
-app.include_router(analytics.router)
+
 
 
 

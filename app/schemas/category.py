@@ -1,11 +1,12 @@
 from typing import List, Optional
 from pydantic import BaseModel
 
-class SubCategoryOut(BaseModel):
+class SubcategoryOut(BaseModel):
     id: int
     name: str
     slug: str
-    category_id: int
+    category_id: Optional[int]  # <-- allow None
+    subcategory_id: Optional[int]  # <-- allow None
 
     class Config:
         orm_mode = True
@@ -34,7 +35,8 @@ class CategoryOut(BaseModel):
     name: str
     slug: str
     image: Optional[str] = None
-    subcategories: Optional[List[SubCategoryOut]] = []  # ✅ Make optional with default
+    # avoid mutable default; allow None when there are no subcategories
+    subcategories: Optional[List[SubcategoryOut]] = None
 
     class Config:
         orm_mode = True
